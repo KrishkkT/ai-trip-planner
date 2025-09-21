@@ -1,0 +1,299 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Trip Itinerary Response Schema",
+  "description": "Schema for AI-generated trip itineraries with three distinct options",
+  "required": ["itineraries", "metadata"],
+  "properties": {
+    "itineraries": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "title", "description", "total_cost", "days", "highlights", "best_for"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the itinerary"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["balanced", "budget", "experience"],
+            "description": "Type of itinerary"
+          },
+          "title": {
+            "type": "string",
+            "description": "Catchy title for the itinerary"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of the itinerary"
+          },
+          "total_cost": {
+            "type": "object",
+            "required": ["amount", "currency"],
+            "properties": {
+              "amount": {
+                "type": "number",
+                "minimum": 0
+              },
+              "currency": {
+                "type": "string",
+                "enum": ["USD", "INR", "EUR", "GBP"]
+              }
+            }
+          },
+          "days": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["day", "date", "activities", "accommodation", "meals", "transportation", "daily_cost"],
+              "properties": {
+                "day": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "activities": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["name", "type", "duration", "cost", "location"],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": ["sightseeing", "adventure", "cultural", "food", "shopping", "relaxation", "transport"]
+                      },
+                      "duration": {
+                        "type": "string"
+                      },
+                      "cost": {
+                        "type": "object",
+                        "required": ["amount", "currency"],
+                        "properties": {
+                          "amount": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "currency": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "location": {
+                        "type": "object",
+                        "required": ["name", "coordinates"],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "coordinates": {
+                            "type": "object",
+                            "required": ["lat", "lng"],
+                            "properties": {
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "booking_info": {
+                        "type": "object",
+                        "properties": {
+                          "bookable": {
+                            "type": "boolean"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "booking_url": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "accommodation": {
+                  "type": "object",
+                  "required": ["name", "type", "cost", "location"],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["hotel", "hostel", "resort", "guesthouse", "apartment"]
+                    },
+                    "cost": {
+                      "type": "object",
+                      "required": ["amount", "currency"],
+                      "properties": {
+                        "amount": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "currency": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "location": {
+                      "type": "object",
+                      "required": ["name", "coordinates"],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "coordinates": {
+                          "type": "object",
+                          "required": ["lat", "lng"],
+                          "properties": {
+                            "lat": {
+                              "type": "number"
+                            },
+                            "lng": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "booking_info": {
+                      "type": "object",
+                      "properties": {
+                        "bookable": {
+                          "type": "boolean"
+                        },
+                        "provider": {
+                          "type": "string"
+                        },
+                        "booking_url": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "meals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["type", "name", "cost"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["breakfast", "lunch", "dinner", "snack"]
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "cost": {
+                        "type": "object",
+                        "required": ["amount", "currency"],
+                        "properties": {
+                          "amount": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "currency": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "transportation": {
+                  "type": "object",
+                  "required": ["type", "cost"],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["flight", "train", "bus", "taxi", "rental_car", "walking"]
+                    },
+                    "cost": {
+                      "type": "object",
+                      "required": ["amount", "currency"],
+                      "properties": {
+                        "amount": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "currency": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "daily_cost": {
+                  "type": "object",
+                  "required": ["amount", "currency"],
+                  "properties": {
+                    "amount": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "currency": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "highlights": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 3,
+            "maxItems": 5
+          },
+          "best_for": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["generated_at", "confidence_score", "request_id"],
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "model_version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
