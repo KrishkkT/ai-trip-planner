@@ -11,21 +11,78 @@ interface ItineraryResultsProps {
   itineraryId: string
 }
 
+interface Day {
+  day: number
+  date?: string
+  activities?: Activity[]
+}
+
+interface Activity {
+  activity?: string
+  name?: string
+  location: string
+  time: string
+  description: string
+  cost?: number
+  type?: string
+}
+
 interface Itinerary {
   id: string
   title: string
   description: string
-  totalCost: number
-  days: any[]
+  totalCost?: number
+  total_cost?: {
+    amount: number
+    currency: string
+  }
+  days?: Day[]
+  highlights?: string[]
+  best_for?: string[]
 }
 
-interface ItineraryResponse {
-  itineraries: Itinerary[]
-  tripRequest: any
+interface TripRequest {
+  origin: string
+  destination: string
+  start_date: string
+  end_date: string
+  budget_total: number
+  currency: string
+  preferred_themes: string[]
+  num_travelers: number
+  numTravelers?: number
+  additional_info?: string
+}
+
+interface TripResponse {
+  id: string
+  tripRequest: TripRequest
   createdAt: string
+  status: string
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+interface FetchError extends Error {
+  status?: number
+  info?: unknown
+}
+
+const fetcher = async (url: string): Promise<TripResponse> => {
+  const response = await fetch(url)
+  
+  if (!response.ok) {
+    const error: FetchError = new Error(`Failed to fetch data: ${response.status} ${response.statusText}`)
+    error.status = response.status
+    try {
+      error.info = await response.json()
+    } catch {
+      error.info = await response.text()
+    }
+    throw error
+  }
+  
+  const data = await response.json()
+  return data
+}
 
 const typeConfig = {
   0: {
@@ -52,9 +109,18 @@ const typeConfig = {
 }
 
 export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
-  const { data, error, isLoading } = useSWR<ItineraryResponse>(
-    `/api/v1/itineraries/generate?id=${itineraryId}`,
+  const { data, error, isLoading } = useSWR<TripResponse>(
+    itineraryId ? `/api/v1/trips/${itineraryId}` : null,
     fetcher,
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: (error: FetchError) => {
+        // Don't retry on 4xx errors
+        return !error.status || error.status >= 500
+      },
+      errorRetryCount: 3,
+      errorRetryInterval: 1000,
+    }
   )
 
   if (isLoading) {
@@ -89,15 +155,34 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
   }
 
   if (error || !data) {
+    const isNotFound = (error as FetchError)?.status === 404
+    const errorStatus = (error as FetchError)?.status
+    const isServerError = errorStatus && errorStatus >= 500
+    
     return (
       <Card className="max-w-md mx-auto">
         <CardContent className="py-12 text-center space-y-4">
-          <div className="text-4xl">😔</div>
-          <h3 className="text-lg font-semibold">Oops! Something went wrong</h3>
-          <p className="text-muted-foreground">Failed to load your itineraries. Please try again.</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
-            Try Again
-          </Button>
+          <div className="text-4xl">{isNotFound ? "🔍" : "😔"}</div>
+          <h3 className="text-lg font-semibold">
+            {isNotFound 
+              ? "Itinerary Not Found" 
+              : isServerError 
+              ? "Server Error" 
+              : "Something went wrong"}
+          </h3>
+          <p className="text-muted-foreground">
+            {isNotFound 
+              ? "The itinerary you're looking for doesn't exist or has expired." 
+              : "Failed to load your itineraries. Please try again."}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+            {isNotFound && (
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     )
@@ -115,11 +200,11 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">
-                  {data.tripRequest.origin} → {data.tripRequest.destination}
+                  {data?.tripRequest?.origin || 'Unknown'} → {data?.tripRequest?.destination || 'Unknown'}
                 </h3>
                 <p className="text-muted-foreground">
-                  {new Date(data.tripRequest.startDate).toLocaleDateString()} -{" "}
-                  {new Date(data.tripRequest.endDate).toLocaleDateString()}
+                  {data?.tripRequest?.start_date ? new Date(data.tripRequest.start_date).toLocaleDateString() : 'N/A'} -{" "}
+                  {data?.tripRequest?.end_date ? new Date(data.tripRequest.end_date).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>
@@ -127,12 +212,12 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <span>{data.tripRequest.numTravelers} travelers</span>
+                <span>{data?.tripRequest?.num_travelers || 1} travelers</span>
               </div>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {data.tripRequest.budget} {data.tripRequest.currency}
+                  {data?.tripRequest?.budget_total || 'N/A'} {data?.tripRequest?.currency || 'USD'}
                 </span>
               </div>
               <Badge variant="secondary" className="bg-accent/20 text-accent-foreground">
@@ -144,14 +229,24 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
         </CardContent>
       </Card>
 
-      {/* Itinerary Cards */}
+      {/* Itinerary Option Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {data.itineraries.map((itinerary, index) => {
-          const config = typeConfig[index as keyof typeof typeConfig]
+        {Object.entries(typeConfig).map(([index, config]) => {
+          const indexNum = parseInt(index)
+          const itineraryType = indexNum === 0 ? 'budget' : indexNum === 1 ? 'balanced' : 'premium'
+          
+          // Calculate estimated costs based on budget
+          const budgetMultiplier = indexNum === 0 ? 0.7 : indexNum === 1 ? 0.9 : 1.2
+          const estimatedCost = Math.floor((data?.tripRequest?.budget_total || 0) * budgetMultiplier)
+          
+          // Calculate duration
+          const startDate = data?.tripRequest?.start_date ? new Date(data.tripRequest.start_date) : new Date()
+          const endDate = data?.tripRequest?.end_date ? new Date(data.tripRequest.end_date) : new Date()
+          const duration = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
 
           return (
             <Card
-              key={itinerary.id}
+              key={`option-${itineraryType}`}
               className="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-0 bg-card/50 backdrop-blur-sm"
             >
               <div className={`h-2 bg-gradient-to-r ${config.gradient}`} />
@@ -170,15 +265,21 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
                     </div>
                   </div>
                   <Badge className={`${config.color} text-white shadow-lg`}>
-                    {index === 0 ? "Budget" : index === 1 ? "Balanced" : "Premium"}
+                    {indexNum === 0 ? "Budget" : indexNum === 1 ? "Balanced" : "Premium"}
                   </Badge>
                 </div>
               </CardHeader>
 
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-xl text-balance mb-2">{itinerary.title}</h3>
-                  <p className="text-muted-foreground text-pretty leading-relaxed">{itinerary.description}</p>
+                  <h3 className="font-semibold text-xl text-balance mb-2">
+                    {`${config.title} ${data?.tripRequest?.destination || 'Experience'}`}
+                  </h3>
+                  <p className="text-muted-foreground text-pretty leading-relaxed">
+                    {indexNum === 0 && "Maximum value with smart savings and authentic local experiences. Perfect for budget-conscious travelers who want to explore without compromise."}
+                    {indexNum === 1 && "The perfect balance of must-see attractions and hidden gems. Ideal for first-time visitors who want comprehensive coverage."}
+                    {indexNum === 2 && "Luxury accommodations, exclusive access, and premium experiences. For those who want the finest travel has to offer."}
+                  </p>
                 </div>
 
                 {/* Key Stats */}
@@ -186,25 +287,77 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-lg font-bold text-primary">
                       <DollarSign className="h-4 w-4" />
-                      {itinerary.totalCost?.toLocaleString() || "N/A"}
+                      {estimatedCost.toLocaleString()}
                     </div>
-                    <div className="text-xs text-muted-foreground">Total Cost</div>
+                    <div className="text-xs text-muted-foreground">Estimated Cost</div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-lg font-bold text-primary">
                       <Clock className="h-4 w-4" />
-                      {itinerary.days?.length || 0}
+                      {duration}
                     </div>
                     <div className="text-xs text-muted-foreground">Days</div>
                   </div>
                 </div>
 
+                {/* Features List */}
+                <div className="space-y-2">
+                  {indexNum === 0 && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Budget-friendly accommodations</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Public transport & walking tours</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Local street food experiences</span>
+                      </div>
+                    </div>
+                  )}
+                  {indexNum === 1 && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Mid-range hotels & experiences</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Mix of iconic sights & hidden gems</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Combination of transport options</span>
+                      </div>
+                    </div>
+                  )}
+                  {indexNum === 2 && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Luxury hotels & premium experiences</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Private tours & exclusive access</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-primary rounded-full"></div>
+                        <span>Fine dining & premium transport</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Action Buttons */}
                 <div className="space-y-3 pt-4">
-                  <Link href={`/itinerary/${itinerary.id || index}`} className="block">
+                  <Link href={`/itinerary/${encodeURIComponent(itineraryId)}/${itineraryType}`} className="block">
                     <Button className="w-full group-hover:shadow-lg transition-all duration-300" size="lg">
                       <Eye className="mr-2 h-4 w-4" />
-                      View Full Itinerary
+                      Generate & View Itinerary
                     </Button>
                   </Link>
 
@@ -213,11 +366,17 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
                     className="w-full border-2 hover:bg-accent/5 bg-transparent"
                     size="lg"
                     onClick={() => {
-                      const searchQuery = `${data.tripRequest.origin} to ${data.tripRequest.destination}`
-                      window.open(
-                        `https://www.easemytrip.com/flights.html?from=${encodeURIComponent(data.tripRequest.origin)}&to=${encodeURIComponent(data.tripRequest.destination)}`,
-                        "_blank",
-                      )
+                      if (!data?.tripRequest?.origin || !data?.tripRequest?.destination) {
+                        console.error('Missing origin or destination data')
+                        return
+                      }
+                      
+                      try {
+                        const url = `https://www.easemytrip.com/flights.html?from=${encodeURIComponent(data.tripRequest.origin)}&to=${encodeURIComponent(data.tripRequest.destination)}`
+                        window.open(url, "_blank", "noopener,noreferrer")
+                      } catch (error) {
+                        console.error('Failed to open booking link:', error)
+                      }
                     }}
                   >
                     <ExternalLink className="mr-2 h-4 w-4" />
@@ -238,7 +397,17 @@ export function ItineraryResults({ itineraryId }: ItineraryResultsProps) {
             These itineraries are just the beginning. Visit EaseMyTrip to book flights, hotels, and activities to bring
             your perfect trip to life.
           </p>
-          <Button size="lg" className="mt-4" onClick={() => window.open("https://www.easemytrip.com/", "_blank")}>
+          <Button 
+            size="lg" 
+            className="mt-4" 
+            onClick={() => {
+              try {
+                window.open("https://www.easemytrip.com/", "_blank", "noopener,noreferrer")
+              } catch (error) {
+                console.error('Failed to open EaseMyTrip link:', error)
+              }
+            }}
+          >
             <ExternalLink className="mr-2 h-5 w-5" />
             Visit EaseMyTrip
           </Button>

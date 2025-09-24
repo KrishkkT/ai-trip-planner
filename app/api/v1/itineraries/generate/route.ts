@@ -1,7 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { validateTripRequest } from "@/lib/validation"
+import { generateItinerary } from "@/lib/ai-orchestrator"
 
-const mockItineraries = new Map()
+// Use globalThis to persist storage across hot reloads in development
+const mockTrips = (globalThis as any).mockTrips || new Map()
+if (!(globalThis as any).mockTrips) {
+  (globalThis as any).mockTrips = mockTrips
+}
+
+const mockItineraries = (globalThis as any).mockItineraries || new Map()
+if (!(globalThis as any).mockItineraries) {
+  (globalThis as any).mockItineraries = mockItineraries
+}
 
 function generateMockItineraries(tripRequest: any) {
   const { origin, destination, start_date, end_date, budget_total, currency, num_travelers, preferred_themes } =
@@ -122,7 +132,7 @@ function generateMockItineraries(tripRequest: any) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Starting itinerary generation")
+    console.log("[v0] Starting trip creation")
     const body = await request.json()
     console.log("[v0] Request body:", body)
 
@@ -136,28 +146,26 @@ export async function POST(request: NextRequest) {
     const tripRequest = validationResult.data
     console.log("[v0] Validated trip request:", tripRequest)
 
-    const itineraryData = generateMockItineraries(tripRequest)
-    console.log("[v0] Generated mock itineraries")
-
-    const itineraryId = `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    mockItineraries.set(itineraryId, {
-      id: itineraryId,
-      ...itineraryData,
+    // Create basic trip data without generating full itineraries
+    const tripId = `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const tripData = {
+      id: tripId,
       tripRequest,
       createdAt: new Date().toISOString(),
-    })
-
-    console.log("[v0] Stored itinerary with ID:", itineraryId)
+      status: 'created'
+    }
+    
+    mockTrips.set(tripId, tripData)
+    console.log("[v0] Created and stored trip with ID:", tripId)
 
     return NextResponse.json({
-      id: itineraryId,
+      id: tripId,
       status: "success",
-      message: "Itinerary generated successfully",
-      confidence_score: 0.95,
+      message: "Trip created successfully",
     })
   } catch (error) {
-    console.error("[v0] Error in generate itinerary API:", error)
-    return NextResponse.json({ error: "Failed to generate itinerary" }, { status: 500 })
+    console.error("[v0] Error in create trip API:", error)
+    return NextResponse.json({ error: "Failed to create trip" }, { status: 500 })
   }
 }
 
@@ -165,14 +173,20 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")
 
+  console.log("[v0] GET request for trip ID:", id)
+  console.log("[v0] Available trips in Map:", Array.from(mockTrips.keys()))
+  console.log("[v0] Map size:", mockTrips.size)
+
   if (!id) {
-    return NextResponse.json({ error: "Itinerary ID is required" }, { status: 400 })
+    return NextResponse.json({ error: "Trip ID is required" }, { status: 400 })
   }
 
-  const itinerary = mockItineraries.get(id)
-  if (!itinerary) {
-    return NextResponse.json({ error: "Itinerary not found" }, { status: 404 })
+  const trip = mockTrips.get(id)
+  if (!trip) {
+    console.log("[v0] Trip not found for ID:", id)
+    return NextResponse.json({ error: "Trip not found" }, { status: 404 })
   }
 
-  return NextResponse.json(itinerary)
+  console.log("[v0] Returning trip for ID:", id)
+  return NextResponse.json(trip)
 }

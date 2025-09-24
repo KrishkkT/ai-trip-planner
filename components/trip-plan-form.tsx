@@ -322,7 +322,6 @@ const popularDestinations = {
     "Little Rock",
     "Augusta",
     "Amarillo",
-    "Glendale",
     "Mobile",
     "Grand Rapids",
     "Salt Lake City",
@@ -353,13 +352,11 @@ const popularDestinations = {
     "Peoria",
     "Pembroke Pines",
     "Elk Grove",
-    "Salem",
     "Lancaster",
     "Corona",
     "Eugene",
     "Palmdale",
     "Salinas",
-    "Springfield",
     "Pasadena",
     "Fort Collins",
     "Hayward",
@@ -369,7 +366,6 @@ const popularDestinations = {
     "Alexandria",
     "Escondido",
     "McKinney",
-    "Kansas City",
     "Joliet",
     "Sunnyvale",
     "Torrance",
@@ -384,7 +380,6 @@ const popularDestinations = {
     "Savannah",
     "Clarksville",
     "Orange",
-    "Pasadena",
     "Fullerton",
     "Killeen",
     "Frisco",
@@ -421,7 +416,6 @@ const popularDestinations = {
     "Denton",
     "Victorville",
     "Evansville",
-    "Santa Clara",
     "Abilene",
     "Athens",
     "Vallejo",
@@ -434,13 +428,11 @@ const popularDestinations = {
     "Fargo",
     "Wilmington",
     "Golden",
-    "Columbia",
     "Ventura",
     "Carlsbad",
   ],
   "United Kingdom": [
     "London",
-    "Birmingham",
     "Manchester",
     "Glasgow",
     "Liverpool",
@@ -471,7 +463,6 @@ const popularDestinations = {
     "York",
     "Peterborough",
     "Dundee",
-    "Lancaster",
     "Oxford",
     "Newport",
     "Preston",
@@ -487,10 +478,7 @@ const popularDestinations = {
     "Winchester",
     "Londonderry",
     "Carlisle",
-    "Worcester",
     "Bath",
-    "Durham",
-    "Lincoln",
     "Hereford",
     "Armagh",
     "Inverness",
@@ -508,7 +496,6 @@ const popularDestinations = {
   Canada: [
     "Toronto",
     "Montreal",
-    "Vancouver",
     "Calgary",
     "Edmonton",
     "Ottawa",
@@ -516,7 +503,6 @@ const popularDestinations = {
     "Quebec City",
     "Hamilton",
     "Kitchener",
-    "London",
     "Victoria",
     "Halifax",
     "Oshawa",
@@ -533,12 +519,10 @@ const popularDestinations = {
     "Saguenay",
     "Trois-Rivières",
     "Guelph",
-    "Cambridge",
     "Whitby",
     "Coquitlam",
     "Saanich",
     "Burlington",
-    "Richmond",
     "Oakville",
     "Burnaby",
     "Richmond Hill",
@@ -549,8 +533,6 @@ const popularDestinations = {
     "Markham",
     "Gatineau",
     "Longueuil",
-    "Burnaby",
-    "Saskatoon",
     "Langley",
     "Lévis",
     "Kamloops",
@@ -561,7 +543,6 @@ const popularDestinations = {
     "Medicine Hat",
     "Brantford",
     "Moncton",
-    "Peterborough",
     "Saint John",
     "Belleville",
     "Sarnia",
@@ -600,7 +581,6 @@ const popularDestinations = {
     "Gladstone",
     "Tamworth",
     "Traralgon",
-    "Orange",
     "Bowral",
     "Geraldton",
     "Dubbo",
@@ -730,7 +710,7 @@ export function TripPlanForm() {
                         </SelectTrigger>
                         <SelectContent className="bg-background/80 backdrop-blur-md border border-border/50 max-h-60">
                           {popularDestinations[originCountry as keyof typeof popularDestinations]?.map((city) => (
-                            <SelectItem key={city} value={city} className="hover:bg-accent/20">
+                            <SelectItem key={`${originCountry}-${city}`} value={city} className="hover:bg-accent/20">
                               {city}
                             </SelectItem>
                           ))}
@@ -764,7 +744,7 @@ export function TripPlanForm() {
                         </SelectTrigger>
                         <SelectContent className="bg-background/80 backdrop-blur-md border border-border/50 max-h-60">
                           {popularDestinations[destinationCountry as keyof typeof popularDestinations]?.map((city) => (
-                            <SelectItem key={city} value={city} className="hover:bg-accent/20">
+                            <SelectItem key={`${destinationCountry}-${city}`} value={city} className="hover:bg-accent/20">
                               {city}
                             </SelectItem>
                           ))}

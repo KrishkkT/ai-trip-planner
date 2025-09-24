@@ -4,12 +4,13 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 interface ResultsPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{
+    tripId: string
+  }>
 }
 
-export default function ResultsPage({ params }: ResultsPageProps) {
+export default async function ResultsPage({ params }: ResultsPageProps) {
+  const resolvedParams = await params
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-accent/5">
       <div className="mx-auto max-w-7xl px-6 py-12">
@@ -39,7 +40,7 @@ export default function ResultsPage({ params }: ResultsPageProps) {
           </div>
         </div>
 
-        <ItineraryResults itineraryId={params.id} />
+        <ItineraryResults itineraryId={resolvedParams.tripId} />
       </div>
     </main>
   )

@@ -4,17 +4,20 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 interface ItineraryPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{
+    tripId: string
+    itineraryId: string
+  }>
 }
 
-export default function ItineraryPage({ params }: ItineraryPageProps) {
+export default async function ItineraryPage({ params }: ItineraryPageProps) {
+  const { tripId, itineraryId } = await params
+  
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-accent/5">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="mb-8">
-          <Link href={`/results/${params.id}`}>
+          <Link href={`/results/${tripId}`}>
             <Button variant="ghost" className="mb-6 hover:bg-accent/10">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Results
@@ -36,7 +39,7 @@ export default function ItineraryPage({ params }: ItineraryPageProps) {
           </div>
         </div>
 
-        <ItineraryDetail itineraryId={params.id} />
+        <ItineraryDetail tripId={tripId} itineraryId={itineraryId} />
       </div>
     </main>
   )

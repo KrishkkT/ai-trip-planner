@@ -10,7 +10,7 @@ interface TripRequest {
   additional_info?: string
 }
 
-export function buildCanonicalPrompt(tripRequest: TripRequest): string {
+export function buildCanonicalPrompt(tripRequest: TripRequest, itineraryType?: string): string {
   const {
     origin,
     destination,
@@ -26,6 +26,7 @@ export function buildCanonicalPrompt(tripRequest: TripRequest): string {
   const duration = calculateDuration(start_date, end_date)
   const themesText = preferred_themes.join(", ")
   const additionalContext = additional_info ? `\n\nAdditional Requirements: ${additional_info}` : ""
+  const specificTypeInstruction = itineraryType ? `\n\nSPECIFIC TYPE REQUESTED: Generate ONLY a "${itineraryType}" type itinerary.` : ""
 
   return `You are an expert travel planner AI. Create exactly 3 distinct travel itineraries for the following trip request:
 
@@ -37,13 +38,13 @@ export function buildCanonicalPrompt(tripRequest: TripRequest): string {
 - Duration: ${duration} days
 - Total Budget: ${currency} ${budget_total.toLocaleString()}
 - Number of Travelers: ${num_travelers}
-- Preferred Themes: ${themesText}${additionalContext}
+- Preferred Themes: ${themesText}${additionalContext}${specificTypeInstruction}
 
 **Requirements:**
-1. Generate exactly 3 itineraries with these types:
-   - "balanced": Perfect mix of must-see attractions and local experiences
+1. ${itineraryType ? `Generate exactly 1 itinerary of type "${itineraryType}":` : 'Generate exactly 3 itineraries with these types:'}
+   ${itineraryType ? getTypeDescription(itineraryType) : `- "balanced": Perfect mix of must-see attractions and local experiences
    - "budget": Maximum value with smart savings and local gems
-   - "experience": Premium experiences and exclusive access
+   - "premium": Premium experiences and exclusive access`}
 
 2. Each itinerary must include:
    - Day-by-day detailed plans
@@ -68,7 +69,7 @@ Return your response as a JSON object that strictly follows this schema:
   "itineraries": [
     {
       "id": "unique_string_id",
-      "type": "balanced|budget|experience",
+      "type": "${itineraryType || 'balanced|budget|premium'}",
       "title": "Catchy itinerary title",
       "description": "Brief description",
       "total_cost": {
@@ -166,6 +167,15 @@ Return your response as a JSON object that strictly follows this schema:
 - Ensure all required fields are present and properly typed
 
 Generate the complete JSON response now:`
+}
+
+function getTypeDescription(type: string): string {
+  const descriptions = {
+    'budget': '- "budget": Maximum value with smart savings and local gems',
+    'balanced': '- "balanced": Perfect mix of must-see attractions and local experiences',
+    'premium': '- "premium": Premium experiences and exclusive access'
+  }
+  return descriptions[type as keyof typeof descriptions] || descriptions['balanced']
 }
 
 function calculateDuration(startDate: string, endDate: string): number {

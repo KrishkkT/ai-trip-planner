@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MapPin, Clock, DollarSign, Calendar, Star, ExternalLink, Plane, Camera, Users, Utensils } from "lucide-react"
 import useSWR from "swr"
+import Link from "next/link"
 
-interface ItineraryDetailProps {
+interface SingleItineraryDetailProps {
   tripId: string
   itineraryId: string
 }
@@ -20,24 +21,18 @@ interface TripRequest {
   currency: string
   preferred_themes: string[]
   num_travelers: number
-  numTravelers: number
+  numTravelers?: number
   additional_info?: string
 }
 
 interface Activity {
   activity?: string
   name?: string
-  location: string | { name: string; coordinates?: { lat: number; lng: number } }
-  time?: string
-  duration?: string
-  description?: string
-  cost?: number | { amount: number; currency: string }
+  location: string
+  time: string
+  description: string
+  cost?: number
   type?: string
-  booking_info?: {
-    bookable: boolean
-    provider: string
-    booking_url: string
-  }
 }
 
 interface Day {
@@ -61,10 +56,7 @@ interface Itinerary {
   best_for?: string[]
 }
 
-interface SingleItineraryResponse {
-  id: string
-  tripId: string
-  type: string
+interface ItineraryResponse {
   itineraries: Itinerary[]
   tripRequest: TripRequest
   createdAt: string
@@ -73,7 +65,6 @@ interface SingleItineraryResponse {
     request_id?: string
     model_version?: string
     confidence_score?: number
-    itinerary_type?: string
   }
 }
 
@@ -82,7 +73,7 @@ interface FetchError extends Error {
   info?: unknown
 }
 
-const fetcher = async (url: string): Promise<SingleItineraryResponse> => {
+const fetcher = async (url: string): Promise<ItineraryResponse> => {
   const response = await fetch(url)
   
   if (!response.ok) {
@@ -111,9 +102,9 @@ const activityIcons = {
   transport: Plane,
 }
 
-export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
-  const { data, error, isLoading } = useSWR<SingleItineraryResponse>(
-    tripId && itineraryId ? `/api/v1/itineraries/${tripId}/${itineraryId}` : null,
+export function SingleItineraryDetail({ tripId, itineraryId }: SingleItineraryDetailProps) {
+  const { data, error, isLoading } = useSWR<ItineraryResponse>(
+    tripId ? `/api/v1/itineraries/generate?id=${tripId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -129,43 +120,18 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-6 w-full" />
-            <div className="flex gap-2 mt-4">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-6 w-24" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-8 w-2/3" />
-                </div>
-              ))}
-            </div>
-            <div className="space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      <Skeleton className="h-12 w-12 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <Skeleton className="h-12 w-full" />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 gap-6">
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -181,15 +147,15 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
           <div className="text-4xl">{isNotFound ? "🔍" : "😔"}</div>
           <h3 className="text-lg font-semibold">
             {isNotFound 
-              ? "Itinerary Not Found" 
+              ? "Trip Not Found" 
               : isServerError 
               ? "Server Error" 
               : "Something went wrong"}
           </h3>
           <p className="text-muted-foreground">
             {isNotFound 
-              ? "The itinerary you're looking for doesn't exist or has expired." 
-              : "Failed to load itinerary details. Please try again."}
+              ? "The trip you're looking for doesn't exist or has expired." 
+              : "Failed to load trip details. Please try again."}
           </p>
           <div className="flex gap-2 justify-center">
             <Button onClick={() => window.location.reload()}>Try Again</Button>
@@ -203,6 +169,26 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
       </Card>
     )
   }
+
+  // Find the specific itinerary to display
+  const targetItinerary = data.itineraries?.find(it => it.id === itineraryId) || 
+                          data.itineraries?.find((it, idx) => idx.toString() === itineraryId) ||
+                          data.itineraries?.[0]
+  
+  if (!targetItinerary) {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardContent className="py-12 text-center space-y-4">
+          <div className="text-4xl">🔍</div>
+          <h3 className="text-lg font-semibold">Itinerary Not Found</h3>
+          <p className="text-muted-foreground">The specific itinerary variant you're looking for doesn't exist.</p>
+          <Button onClick={() => window.history.back()}>Go Back</Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const itineraryIndex = data.itineraries?.findIndex(it => it.id === targetItinerary.id) ?? 0
 
   const handleBookItinerary = () => {
     if (!data?.tripRequest?.origin || !data?.tripRequest?.destination) {
@@ -218,56 +204,47 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
     }
   }
 
-  // Get the first (and should be only) itinerary from the response
-  const itinerary = data?.itineraries?.[0]
-  
-  if (!itinerary) {
-    return (
-      <Card className="max-w-md mx-auto">
-        <CardContent className="py-12 text-center space-y-4">
-          <div className="text-4xl">🤔</div>
-          <h3 className="text-lg font-semibold">Itinerary Not Generated</h3>
-          <p className="text-muted-foreground">
-            This itinerary hasn't been generated yet. Try refreshing the page.
-          </p>
-          <Button onClick={() => window.location.reload()}>Refresh</Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Get display config based on itinerary type
-  const typeConfigs = {
-    budget: { icon: "💰", title: "Budget Explorer", color: "bg-emerald-500" },
-    balanced: { icon: "⚖️", title: "Balanced Journey", color: "bg-blue-500" },
-    premium: { icon: "✨", title: "Premium Experience", color: "bg-purple-500" },
-  }
-  const config = typeConfigs[itinerary.type as keyof typeof typeConfigs] || typeConfigs.balanced
-
   return (
     <div className="space-y-8">
+      {/* Navigation tabs for other variants */}
+      <div className="flex justify-center">
+        <div className="flex gap-2 p-1 bg-secondary/30 rounded-lg">
+          {data.itineraries?.map((itinerary: Itinerary, index: number) => {
+            const isActive = itinerary.id === targetItinerary.id || index === itineraryIndex
+            return (
+              <Link 
+                key={itinerary.id || index} 
+                href={`/itinerary/${tripId}/${itinerary.id || index}`}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg transition-all duration-200 ${
+                  isActive 
+                    ? 'bg-primary text-primary-foreground shadow-lg' 
+                    : 'hover:bg-secondary/50'
+                }`}
+              >
+                <span className="text-xl">{index === 0 ? "💰" : index === 1 ? "⚖️" : "✨"}</span>
+                <span className="text-sm font-medium">
+                  {index === 0 ? "Budget" : index === 1 ? "Balanced" : "Premium"}
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Itinerary Header */}
       <Card className="overflow-hidden border-0 bg-card/50 backdrop-blur-sm shadow-xl">
         <div className="h-2 bg-gradient-to-r from-primary via-accent to-primary" />
         <CardHeader className="pb-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             <div className="space-y-3 flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-accent/20 to-primary/20">
-                  <span className="text-2xl">{config.icon}</span>
-                </div>
-                <Badge className={`${config.color} text-white shadow-lg px-4 py-2`}>
-                  {data.type?.charAt(0).toUpperCase() + data.type?.slice(1) || 'Custom'} Itinerary
-                </Badge>
-              </div>
-              <CardTitle className="text-3xl text-balance leading-tight">{itinerary.title || 'Untitled Itinerary'}</CardTitle>
+              <CardTitle className="text-3xl text-balance leading-tight">{targetItinerary.title || 'Untitled Itinerary'}</CardTitle>
               <CardDescription className="text-base text-pretty leading-relaxed">
-                {itinerary.description || 'No description available'}
+                {targetItinerary.description || 'No description available'}
               </CardDescription>
             </div>
             <div className="flex flex-col items-start lg:items-end gap-3">
               <Badge variant="outline" className="text-xl px-6 py-3 font-bold bg-primary/10 border-primary/20">
-                ${(itinerary.totalCost || itinerary.total_cost?.amount || 0).toLocaleString()}
+                ${(targetItinerary.totalCost || targetItinerary.total_cost?.amount || 0).toLocaleString()}
               </Badge>
               <div className="text-sm text-muted-foreground">Total estimated cost</div>
             </div>
@@ -279,7 +256,7 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
             <div className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg">
               <Calendar className="h-5 w-5 text-primary" />
               <div>
-                <div className="font-semibold">{itinerary.days?.length || 0}</div>
+                <div className="font-semibold">{targetItinerary.days?.length || 0}</div>
                 <div className="text-sm text-muted-foreground">Days</div>
               </div>
             </div>
@@ -287,7 +264,7 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
               <DollarSign className="h-5 w-5 text-primary" />
               <div>
                 <div className="font-semibold">
-                  ${Math.round((itinerary.totalCost || itinerary.total_cost?.amount || 0) / (itinerary.days?.length || 1))}
+                  ${Math.round((targetItinerary.totalCost || targetItinerary.total_cost?.amount || 0) / (targetItinerary.days?.length || 1))}
                 </div>
                 <div className="text-sm text-muted-foreground">Per day</div>
               </div>
@@ -303,7 +280,7 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
               <Star className="h-5 w-5 text-primary" />
               <div>
                 <div className="font-semibold">AI</div>
-                <div className="text-sm text-muted-foreground">Generated</div>
+                <div className="text-sm text-muted-foreground">Curated</div>
               </div>
             </div>
           </div>
@@ -337,7 +314,7 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
           <p className="text-muted-foreground">Your personalized travel schedule</p>
         </div>
 
-        {itinerary.days?.map((day: Day, dayIndex: number) => (
+        {targetItinerary.days?.map((day: Day, dayIndex: number) => (
           <Card key={`day-${day.day || dayIndex}`} className="overflow-hidden border-0 bg-card/30 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
               <CardTitle className="flex items-center gap-3">
@@ -383,10 +360,7 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
                               <div className="space-y-1">
                                 <h5 className="font-semibold text-lg">{activity.activity || activity.name || 'Activity'}</h5>
                                 <p className="text-muted-foreground">
-                                  {typeof activity.location === 'string' 
-                                    ? activity.location 
-                                    : activity.location?.name || 'Location TBD'
-                                  } • {activity.time || activity.duration || 'Time TBD'}
+                                  {activity.location || 'Location TBD'} • {activity.time || 'Time TBD'}
                                 </p>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
                                   {activity.description || 'No description available'}
@@ -394,10 +368,7 @@ export function ItineraryDetail({ tripId, itineraryId }: ItineraryDetailProps) {
                               </div>
                               {activity.cost && (
                                 <Badge variant="outline" className="shrink-0">
-                                  ${typeof activity.cost === 'number' 
-                                    ? activity.cost 
-                                    : activity.cost.amount
-                                  }
+                                  ${activity.cost}
                                 </Badge>
                               )}
                             </div>
