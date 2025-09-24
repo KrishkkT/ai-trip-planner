@@ -116,33 +116,6 @@ To get your Google Gemini API key:
 
 **Important**: Keep your API key secure and never commit it to version control.
 
-## 📁 Project Structure
-
-\`\`\`
-ai-trip-planner/
-├── app/                    # Next.js App Router pages
-│   ├── api/v1/            # API routes
-│   ├── auth/              # Authentication pages
-│   ├── plan/              # Trip planning interface
-│   ├── results/           # Itinerary results
-│   └── dashboard/         # User dashboard
-├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   ├── auth/             # Authentication components
-│   └── ...               # Feature components
-├── lib/                  # Utility libraries
-│   ├── ai-orchestrator.ts # AI integration logic
-│   ├── firestore.ts      # Database operations
-│   ├── emt-adapter.ts    # EaseMyTrip integration
-│   └── ...               # Other utilities
-├── ai/                   # AI configuration
-│   └── schema.json       # Itinerary response schema
-├── scripts/              # Utility scripts
-│   └── seed-dev.js       # Database seeding
-├── __tests__/            # Test files
-└── docs/                 # Documentation
-\`\`\`
-
 ## 🧪 Testing
 
 Run the test suite:
@@ -183,51 +156,6 @@ npm run build
 npm start
 \`\`\`
 
-## 📊 API Documentation
-
-### Core Endpoints
-
-#### Generate Itinerary
-\`\`\`http
-POST /api/v1/itineraries/generate
-Content-Type: application/json
-
-{
-  "origin": "Mumbai, India",
-  "destination": "Udaipur, India",
-  "start_date": "2025-10-05",
-  "end_date": "2025-10-08",
-  "budget_total": 30000,
-  "currency": "INR",
-  "preferred_themes": ["heritage", "relaxation"],
-  "num_travelers": 2
-}
-\`\`\`
-
-#### Get Itinerary
-\`\`\`http
-GET /api/v1/itineraries/{id}
-\`\`\`
-
-#### Create Booking
-\`\`\`http
-POST /api/v1/bookings/create
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "itinerary_id": "itinerary_123",
-  "user_id": "user_456",
-  "items": [
-    {
-      "type": "hotel",
-      "item_id": "hotel_1",
-      "quantity": 1,
-      "price": 8000
-    }
-  ]
-}
-\`\`\`
 
 ## 🔧 Configuration
 
@@ -239,43 +167,8 @@ Content-Type: application/json
 
 The application automatically switches from mock to real EMT integration when API credentials are provided.
 
-### BigQuery Integration
-
-1. **Create BigQuery Dataset**: Set up a dataset named `trip_analytics`
-2. **Service Account**: Create a service account with BigQuery access
-3. **Credentials**: Add the service account key to `BIGQUERY_CREDENTIALS_PATH`
-
 ## 🎯 Example Usage
 
-### Sample Trip Request (India)
-
-\`\`\`javascript
-const tripRequest = {
-  origin: "Mumbai, India",
-  destination: "Udaipur, India",
-  start_date: "2025-10-05",
-  end_date: "2025-10-08",
-  budget_total: 30000,
-  currency: "INR",
-  preferred_themes: ["heritage", "relaxation"],
-  num_travelers: 2
-}
-\`\`\`
-
-### Sample Trip Request (International)
-
-\`\`\`javascript
-const tripRequest = {
-  origin: "London, UK",
-  destination: "Lisbon, PT",
-  start_date: "2025-09-10",
-  end_date: "2025-09-13",
-  budget_total: 1200,
-  currency: "USD",
-  preferred_themes: ["heritage", "food"],
-  num_travelers: 1
-}
-\`\`\`
 
 ## 🐛 Troubleshooting
 
